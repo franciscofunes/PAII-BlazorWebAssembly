@@ -38,13 +38,16 @@
                     @foreach (var cotizacion in cotizaciones)
                     {
                         <tr>
-                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300 text-black">@cotizacion?.nombre
+                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300 text-black">@(cotizacion?.nombre !=
+                        null ? cotizacion.nombre.ToString() : "-")
                             </td>
-                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300 text-black">@cotizacion?.compra
-                            </td>
-                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300 text-black">@cotizacion?.venta</td>
                             <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300 text-black">
-                                @cotizacion?.fechaActualizacion</td>
+                                @(cotizacion?.compra != null ? cotizacion.compra.ToString() : "-")
+                            </td>
+                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300 text-black">@(cotizacion?.venta !=
+                        null ? cotizacion.venta.ToString() : "-")</td>
+                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300 text-black">
+                                @(cotizacion?.fechaActualizacion != null ? cotizacion.fechaActualizacion.ToString() : "-")</td>
                         </tr>
                     }
                 </tbody>

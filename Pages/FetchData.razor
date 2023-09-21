@@ -1,57 +1,87 @@
-﻿@page "/fetchdata"
+﻿@page "/cotizaciones"
 @inject HttpClient Http
 
-<PageTitle>Weather forecast</PageTitle>
+<PageTitle>Cotizaciones del Dólar</PageTitle>
 
-<h1>Weather forecast</h1>
+<div class="bg-blue-400 min-h-screen flex flex-col justify-center items-center text-white">
+    <h1 class="text-2xl font-semibold">Cotizaciones del Dólar</h1>
 
-<p>This component demonstrates fetching data from the server.</p>
-
-@if (forecasts == null)
-{
-    <p><em>Loading...</em></p>
-}
-else
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Temp. (C)</th>
-                <th>Temp. (F)</th>
-                <th>Summary</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var forecast in forecasts)
-            {
-                <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
-                    <td>@forecast.TemperatureC</td>
-                    <td>@forecast.TemperatureF</td>
-                    <td>@forecast.Summary</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+    @if (cotizaciones == null)
+    {
+        <p class="text-gray-600"><em>Cargando...</em></p>
+    }
+    else if (cotizaciones.Length == 0)
+    {
+        <p class="text-red-600">No se encontraron cotizaciones.</p>
+    }
+    else
+    {
+        <div class="overflow-x-auto w-full">
+            <table class="min-w-full bg-white border-collapse border border-gray-300 mt-4">
+                <thead>
+                    <tr>
+                        <th
+                            class="px-6 py-3 bg-gray-100 text-left text-xs leading-4 font-medium text-gray-600 uppercase tracking-wider">
+                            Nombre</th>
+                        <th
+                            class="px-6 py-3 bg-gray-100 text-left text-xs leading-4 font-medium text-gray-600 uppercase tracking-wider">
+                            Compra</th>
+                        <th
+                            class="px-6 py-3 bg-gray-100 text-left text-xs leading-4 font-medium text-gray-600 uppercase tracking-wider">
+                            Venta</th>
+                        <th
+                            class="px-6 py-3 bg-gray-100 text-left text-xs leading-4 font-medium text-gray-600 uppercase tracking-wider">
+                            Fecha de Actualización</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var cotizacion in cotizaciones)
+                    {
+                        <tr>
+                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300 text-black">@cotizacion?.nombre
+                            </td>
+                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300 text-black">@cotizacion?.compra
+                            </td>
+                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300 text-black">@cotizacion?.venta</td>
+                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300 text-black">
+                                @cotizacion?.fechaActualizacion</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
 
 @code {
-    private WeatherForecast[]? forecasts;
+    private Cotizacion[]? cotizaciones;
 
     protected override async Task OnInitializedAsync()
     {
-        forecasts = await Http.GetFromJsonAsync<WeatherForecast[]>("sample-data/weather.json");
+        try
+        {
+            cotizaciones = await Http.GetFromJsonAsync<Cotizacion[]>("https://dolarapi.com/v1/dolares");
+        }
+        catch (HttpRequestException ex)
+        {
+            // Handle HTTP request exceptions, e.g., network issues.
+            // You can log the exception for debugging.
+            cotizaciones = Array.Empty<Cotizacion>();
+        }
+        catch (Exception ex)
+        {
+            // Handle other exceptions.
+            // You can log the exception for debugging.
+            cotizaciones = Array.Empty<Cotizacion>();
+        }
     }
 
-    public class WeatherForecast
+    public class Cotizacion
     {
-        public DateOnly Date { get; set; }
-
-        public int TemperatureC { get; set; }
-
-        public string? Summary { get; set; }
-
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+        public string? casa { get; set; }
+        public string? nombre { get; set; }
+        public decimal? compra { get; set; }
+        public decimal? venta { get; set; }
+        public DateTime? fechaActualizacion { get; set; }
     }
 }

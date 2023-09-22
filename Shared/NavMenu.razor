@@ -1,14 +1,9 @@
 ﻿<div class="bg-gray-100">
     <div class="container mx-auto flex items-center justify-between py-3">
         <a class="text-black text-2xl ml-2 border-b border-black lg:border-none hidden lg:block" href="/">
-            Dolar Pulse
+            Dolar <span class="animate-pulse">Pulse</span> <span class="text-sm text-bold">AR</span>
             <span class="fas fa-wave-square font-semibold text-black" aria-hidden="true"></span>
         </a>
-        <button title="Navigation menu"
-            class="text-black text-xl lg:hidden absolute right-2 top-2 p-2 rounded-lg shadow-md"
-            @onclick="ToggleNavMenu">
-            <span class="text-black fas fa-bars"></span>
-        </button>
     </div>
 </div>
 
@@ -25,6 +20,7 @@
             </NavLink>
         </div>
     </nav>
+
 </div>
 
 @code {

@@ -9,31 +9,32 @@
 
     <!-- Input for Amount -->
     <div class="flex flex-col mb-4">
-        <label class="text-sm font-semibold text-gray-700" for="amount">Monto</label>
+        <label class="text-sm font-semibold text-gray-700 mb-1" for="amount">Monto</label>
         <input id="amount" type="text" class="border rounded-md py-2 px-3 w-full text-black"
             value="@String.Format("{0:N2}", amount)" readonly @oninput="HandleAmountInput" @onkeydown="HandleKeyDown"
             disabled="@isLoading">
     </div>
 
     <!-- Icon/Button to Change Conversion Direction -->
-    <button class="bg-gray-600 text-white rounded-full p-2 mb-3" @onclick="SwapCurrencyTypes"
+    <button class="bg-gray-600 text-white rounded-full p-2 mb-4 shadow hover:shadow-md transition" @onclick="SwapCurrencyTypes"
         disabled="@IsSwapButtonDisabled">
         <i class="fas fa-exchange-alt"></i>
     </button>
 
     <!-- Display Converted Value -->
     <div class="flex flex-col mb-4">
-        <label class="text-sm font-semibold text-gray-700 mb-2" for="convertedValue">Valor Convertido</label>
+        <label class="text-sm font-semibold text-gray-700 mb-1" for="convertedValue">Valor Convertido</label>
         <input id="convertedValue" type="text" class="border rounded-md py-2 px-3 w-full text-black"
             value="@String.Format("{0:N2}", convertedValue)" readonly>
     </div>
 
     <!-- Dropdown for Dollar Type -->
     <div class="flex flex-col mb-4">
-        <label class="text-sm font-semibold text-gray-700 mb-2" for="dollarType">Seleccionar Tipo de Dólar</label>
+        <label class="text-sm font-semibold text-gray-700 mb-1" for="dollarType">Seleccionar Tipo de Dólar</label>
         @if (currencyValues != null && currencyValues.Any())
         {
-            <select id="dollarType" class="border rounded-md py-2 px-3 w-full text-black" @bind="selectedDollarType">
+            <select id="dollarType" class="border rounded-md py-2 px-3 w-full text-black" value="@selectedDollarType"
+                @onchange="HandleDollarTypeChange">
                 @foreach (var currency in currencyValues)
                 {
                     <option value="@currency.venta">@currency.nombre</option>
@@ -49,27 +50,27 @@
     <!-- Numeric Keypad UI for Entering Values -->
     <div class="grid grid-cols-3 gap-2">
         <!-- Numeric Keypad for Amount -->
-        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(1)">1</button>
-        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(2)">2</button>
-        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(3)">3</button>
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3 shadow hover:shadow-md transition" @onclick="() => AddToAmount(1)">1</button>
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3 shadow hover:shadow-md transition" @onclick="() => AddToAmount(2)">2</button>
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3 shadow hover:shadow-md transition" @onclick="() => AddToAmount(3)">3</button>
 
-        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(4)">4</button>
-        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(5)">5</button>
-        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(6)">6</button>
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3 shadow hover:shadow-md transition" @onclick="() => AddToAmount(4)">4</button>
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3 shadow hover:shadow-md transition" @onclick="() => AddToAmount(5)">5</button>
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3 shadow hover:shadow-md transition" @onclick="() => AddToAmount(6)">6</button>
 
-        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(7)">7</button>
-        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(8)">8</button>
-        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(9)">9</button>
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3 shadow hover:shadow-md transition" @onclick="() => AddToAmount(7)">7</button>
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3 shadow hover:shadow-md transition" @onclick="() => AddToAmount(8)">8</button>
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3 shadow hover:shadow-md transition" @onclick="() => AddToAmount(9)">9</button>
 
         <!-- Additional Buttons (e.g., decimal point) can be added here -->
 
         <!-- Button for Decimal Point -->
-        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="AddDecimalPoint">,</button>
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3 shadow hover:shadow-md transition" @onclick="AddDecimalPoint">,</button>
 
-        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(0)">0</button>
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3 shadow hover:shadow-md transition" @onclick="() => AddToAmount(0)">0</button>
 
         <!-- Delete Button -->
-        <button class="bg-red-600 text-white rounded-md py-2 px-3" @onclick="DeleteLastDigit">
+        <button class="bg-red-600 text-white rounded-md py-2 px-3 shadow hover:shadow-md transition" @onclick="DeleteLastDigit">
             <i class="fas fa-backspace"></i>
         </button>
     </div>
@@ -242,8 +243,16 @@
     {
         // Update the selectedDollarType when the dropdown selection changes
         selectedDollarType = Convert.ToDecimal(e.Value);
+        ResetValues(); // Reset amount and convertedValue
         ConvertCurrency(); // Recalculate conversion
         StateHasChanged(); // Trigger a re-render
+    }
+
+    // Add this method to reset values
+    private void ResetValues()
+    {
+        amount = 0;
+        convertedValue = 0;
     }
 
     private void HandleAmountInput(ChangeEventArgs e)

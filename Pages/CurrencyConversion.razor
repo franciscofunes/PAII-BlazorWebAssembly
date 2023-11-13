@@ -1,0 +1,297 @@
+@page "/conversor"
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Dolar Pulse - Conversor de Moneda</PageTitle>
+
+<div class="bg-blue-400 min-h-screen flex flex-col justify-center items-center text-white p-4">
+    <h1 class="text-2xl font-semibold mb-4">Conversor de Moneda</h1>
+
+    <!-- Input for Amount -->
+    <div class="flex flex-col mb-4">
+        <label class="text-sm font-semibold text-gray-700" for="amount">Monto</label>
+        <input id="amount" type="text" class="border rounded-md py-2 px-3 w-full text-black"
+            value="@String.Format("{0:N2}", amount)" readonly @oninput="HandleAmountInput" @onkeydown="HandleKeyDown"
+            disabled="@isLoading">
+    </div>
+
+    <!-- Icon/Button to Change Conversion Direction -->
+    <button class="bg-gray-600 text-white rounded-full p-2 mb-3" @onclick="SwapCurrencyTypes"
+        disabled="@IsSwapButtonDisabled">
+        <i class="fas fa-exchange-alt"></i>
+    </button>
+
+    <!-- Display Converted Value -->
+    <div class="flex flex-col mb-4">
+        <label class="text-sm font-semibold text-gray-700 mb-2" for="convertedValue">Valor Convertido</label>
+        <input id="convertedValue" type="text" class="border rounded-md py-2 px-3 w-full text-black"
+            value="@String.Format("{0:N2}", convertedValue)" readonly>
+    </div>
+
+    <!-- Dropdown for Dollar Type -->
+    <div class="flex flex-col mb-4">
+        <label class="text-sm font-semibold text-gray-700 mb-2" for="dollarType">Seleccionar Tipo de Dólar</label>
+        @if (currencyValues != null && currencyValues.Any())
+        {
+            <select id="dollarType" class="border rounded-md py-2 px-3 w-full text-black" @bind="selectedDollarType">
+                @foreach (var currency in currencyValues)
+                {
+                    <option value="@currency.venta">@currency.nombre</option>
+                }
+            </select>
+        }
+        else
+        {
+            <p>Cargando...</p>
+        }
+    </div>
+
+    <!-- Numeric Keypad UI for Entering Values -->
+    <div class="grid grid-cols-3 gap-2">
+        <!-- Numeric Keypad for Amount -->
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(1)">1</button>
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(2)">2</button>
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(3)">3</button>
+
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(4)">4</button>
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(5)">5</button>
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(6)">6</button>
+
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(7)">7</button>
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(8)">8</button>
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(9)">9</button>
+
+        <!-- Additional Buttons (e.g., decimal point) can be added here -->
+
+        <!-- Button for Decimal Point -->
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="AddDecimalPoint">,</button>
+
+        <button class="bg-gray-600 text-white rounded-md py-2 px-3" @onclick="() => AddToAmount(0)">0</button>
+
+        <!-- Delete Button -->
+        <button class="bg-red-600 text-white rounded-md py-2 px-3" @onclick="DeleteLastDigit">
+            <i class="fas fa-backspace"></i>
+        </button>
+    </div>
+
+
+    <!-- Margin -->
+    <div style="margin-bottom: 20px;"></div>
+
+    <!-- Display Conversion Direction -->
+    <div class="p-2 mb-5">
+        @if (IsToPesosConversion)
+        {
+            <p>De Dólar (@String.Format("{0:N2}", selectedDollarType)) a Pesos</p>
+        }
+        else
+        {
+            <p>De Pesos a Dólar (@String.Format("{0:N2}", selectedDollarType))</p>
+        }
+    </div>
+</div>
+@code {
+    private bool IsToPesosConversion { get; set; } = true;
+    private decimal originalDollarType;
+    private decimal selectedDollarType;
+    private decimal amount;
+    private decimal convertedValue;
+    private List<CurrencyValues> currencyValues;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await FetchCurrencyValues();
+
+        // Set the default value to the first currency's venta if available
+        selectedDollarType = currencyValues?.FirstOrDefault()?.venta ?? 0;
+
+        ConvertCurrency(); // Call to set initial convertedValue
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Called whenever a parameter is set
+        ConvertCurrency();
+    }
+
+    private async Task FetchCurrencyValues()
+    {
+        try
+        {
+            // Fetch currency values from the provided endpoint
+            var fetchedCurrencyValues = await Http.GetFromJsonAsync<List<CurrencyValues>>("https://dolarapi.com/v1/dolares");
+            if (fetchedCurrencyValues != null)
+            {
+                currencyValues = fetchedCurrencyValues;
+                isLoading = false; // Set isLoading to false once data is loaded
+
+                // Debugging: Output the count of fetched currency values
+                Console.WriteLine($"Fetched {currencyValues.Count} currency values.");
+            }
+            else
+            {
+                Console.WriteLine("No data fetched.");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exceptions, e.g., log the error
+            Console.WriteLine(ex.Message);
+            isLoading = false; // Set isLoading to false on error as well
+        }
+    }
+
+
+    private bool IsSwapButtonDisabled => currencyValues == null || currencyValues.Count <= 1;
+
+    private void ConvertCurrency()
+    {
+        if (currencyValues != null && currencyValues.Any())
+        {
+            // Determine the conversion direction based on IsToPesosConversion
+            var isToPesos = IsToPesosConversion;
+
+            // Find the selected currency by its venta value
+            var selectedCurrency = currencyValues.FirstOrDefault(c => c.venta == selectedDollarType);
+            if (selectedCurrency != null)
+            {
+                // Explicitly cast nullable decimal to decimal
+                decimal selectedVentaValue = selectedCurrency.venta ?? 0;
+
+                // Calculate the converted value based on the conversion direction
+                if (isToPesos)
+                {
+                    convertedValue = amount * selectedVentaValue;
+                }
+                else
+                {
+                    convertedValue = amount / selectedVentaValue;
+                }
+            }
+        }
+        else
+        {
+            convertedValue = 0; // Handle the case when currencyValues is null or empty
+        }
+
+        // Notify the component that the state has changed
+        StateHasChanged();
+    }
+
+    private void SwapCurrencyTypes()
+    {
+        // Swap the conversion direction
+        IsToPesosConversion = !IsToPesosConversion;
+
+        // Recalculate the conversion without changing the selectedDollarType
+        ConvertCurrency();
+    }
+
+    private void DeleteLastDigit()
+    {
+        // Ensure the amount is greater than or equal to 10 before removing the last digit
+        if (amount >= 10)
+        {
+            // Remove the last digit
+            amount = (int)(amount / 10);
+            ConvertCurrency(); // Recalculate conversion
+        }
+        else
+        {
+            // If the amount is less than 10, set it to 0
+            amount = 0;
+            ConvertCurrency(); // Recalculate conversion
+        }
+    }
+    private void AddToAmount(int value)
+    {
+        if (amount == 0)
+        {
+            // If the amount is zero, directly set it to the entered value
+            amount = value;
+        }
+        else if (amount % 1 == 0) // If there is no decimal point
+        {
+            amount = amount * 10 + value;
+        }
+        else
+        {
+            // Count the number of digits to the right of the decimal point
+            int decimalPlaces = BitConverter.GetBytes(decimal.GetBits(amount)[3])[2];
+
+            // Add the new digit to the right of the decimal point
+            amount = amount + value * (decimal)Math.Pow(10, -decimalPlaces - 1);
+        }
+
+        ConvertCurrency(); // Recalculate conversion
+    }
+
+    private void AddDecimalPoint()
+    {
+        // Check if the amount already contains a decimal point
+        if (amount % 1 == 0)
+        {
+            // Add a decimal point
+            amount = decimal.Add(amount, 0.1m);
+            ConvertCurrency(); // Recalculate conversion
+        }
+    }
+
+    private void HandleDollarTypeChange(ChangeEventArgs e)
+    {
+        // Update the selectedDollarType when the dropdown selection changes
+        selectedDollarType = Convert.ToDecimal(e.Value);
+        ConvertCurrency(); // Recalculate conversion
+        StateHasChanged(); // Trigger a re-render
+    }
+
+    private void HandleAmountInput(ChangeEventArgs e)
+    {
+        // Remove non-numeric characters from the input
+        var numericValue = new string(e.Value.ToString().Where(char.IsDigit).ToArray());
+
+        if (!string.IsNullOrEmpty(numericValue))
+        {
+            amount = decimal.Parse(numericValue);
+        }
+        else
+        {
+            amount = 0;
+        }
+
+        ConvertCurrency(); // Recalculate conversion
+    }
+
+    private void HandleKeyPress(KeyboardEventArgs e)
+    {
+        // Allow numeric keys and specific control keys (e.g., backspace, delete)
+        if (!(char.IsDigit(e.Key[0]) || e.Key == "Backspace" || e.Key == "Delete" || e.Key == "ArrowLeft" || e.Key ==
+        "ArrowRight"))
+        {
+            amount = decimal.Parse(new string(amount.ToString().Where(char.IsDigit).ToArray()));
+            ConvertCurrency(); // Recalculate conversion
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        // Allow numeric keys, backspace, delete, and arrow keys
+        if (!(char.IsDigit(e.Key[0]) || e.Key == "Backspace" || e.Key == "Delete" || e.Key == "ArrowLeft" || e.Key ==
+        "ArrowRight"))
+        {
+            // Prevent the default action using JavaScript interop
+            await JSRuntime.InvokeVoidAsync("preventDefault", e);
+        }
+    }
+
+    public class CurrencyValues
+    {
+        public string casa { get; set; } = "";
+        public string nombre { get; set; } = "";
+        public decimal? compra { get; set; } // Make it nullable
+        public decimal? venta { get; set; }
+        public DateTime? fechaActualizacion { get; set; }
+    }
+
+}
